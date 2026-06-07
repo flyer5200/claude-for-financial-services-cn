@@ -1,0 +1,68 @@
+---
+name: china-comps
+description: Comparable company analysis for A-share stocks. Uses the AkShare MCP to build peer groups, pull financial data, compute valuation multiples (PE, PB, PS), and assess relative value within a Chinese industry sector. Use instead of the original comps-analysis skill when dealing with Chinese-listed equities.
+---
+
+# china-comps
+
+## Workflow
+
+### 1. Define the peer group
+
+Start with the target stock, then use `get_industry_stocks(industry="<行业名称>")` to get the full peer set for that industry. Common industry names used in the 东方财富 classification:
+
+| Industry | Examples |
+|----------|----------|
+| 白酒 | 贵州茅台, 五粮液, 泸州老窖 |
+| 半导体 | 中芯国际, 北方华创, 韦尔股份 |
+| 电池 | 宁德时代, 亿纬锂能, 国轩高科 |
+| 银行 | 招商银行, 工商银行, 建设银行 |
+| 证券 | 中信证券, 华泰证券, 东方财富 |
+| 保险 | 中国平安, 中国人寿, 中国太保 |
+| 医疗器械 | 迈瑞医疗, 联影医疗, 乐普医疗 |
+| 光伏设备 | 隆基绿能, 阳光电源, 通威股份 |
+| 汽车整车 | 比亚迪, 长城汽车, 上汽集团 |
+| 软件开发 | 科大讯飞, 用友网络, 金山办公 |
+
+### 2. Pull financial data for each peer
+
+```
+For each ticker in the peer set:
+  get_quote(ticker)         → price, PE, PB, market cap
+  get_financials(ticker, "income", "annual")     → revenue, net income
+  get_financials(ticker, "balance", "annual")    → book value, debt
+  get_stock_info(ticker)    → business description
+```
+
+### 3. Compute standard multiples
+
+| Multiple | Formula | AkShare source field |
+|----------|---------|---------------------|
+| PE (TTM) | Price / EPS TTM | `get_quote` → 动态市盈率 |
+| PB | Price / Book Value per share | `get_quote` → 市净率 |
+| PS (TTM) | Market Cap / Revenue TTM | Compute from market cap + revenue |
+| EV/EBITDA | Enterprise Value / EBITDA | Compute from market cap + debt - cash |
+| Dividend Yield | DPS / Price | `get_quote` → 股息率 |
+
+### 4. Present the comps table
+
+Sort by market cap (largest first). Flag outliers (>2 standard deviations from mean). Include:
+- Ticker, company name, price
+- Market cap (亿 CNY)
+- PE, PB, PS
+- Revenue growth %, Net margin %
+- 52-week high/low
+
+### 5. Relative value assessment
+
+- If target's PE is >1 std dev above peer mean → potentially overvalued
+- If target's PE is >1 std dev below peer mean → potentially undervalued
+- Flag companies with negative earnings separately
+- Compare PEG ratios (PE / growth rate) when growth data is available
+
+## Notes
+
+- All financial data from AkShare is based on Chinese accounting standards (CAS), not IFRS/US GAAP
+- Chinese market has 涨跌停 limits (±10% for main board, ±20% for ChiNext/STAR)
+- A-share market cap includes both circulating (流通) and non-circulating shares — check if the user wants 流通市值 or 总市值
+- For cross-market comps (A-share vs HK-listed), note that A-shares typically trade at a premium

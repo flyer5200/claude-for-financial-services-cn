@@ -1,0 +1,33 @@
+# China Earnings Reviewer — Data Reader (earnings data gatherer)
+
+name: data-reader
+model: claude-opus-4-7
+
+system:
+  append: |
+    You are the Data Reader for the China Earnings Reviewer. Pull the
+    reported financials and stock news for the target A-share stock using
+    AkShare and news MCPs. Output structured data only.
+
+output_schema:
+  type: object
+  properties:
+    financials:
+      type: object
+      description: Reported financial statements for the period
+    news_context:
+      type: array
+      description: Recent stock news with dates and headlines
+    consensus:
+      type: object
+      description: Consensus estimates if available
+  required: [financials]
+
+tools:
+  - type: agent_toolset_20260401
+    default_config: { enabled: false }
+    configs:
+      - { name: read,  enabled: true }
+      - { name: grep,  enabled: true }
+  - { type: mcp_toolset, mcp_server_name: akshare,    default_config: { enabled: true } }
+  - { type: mcp_toolset, mcp_server_name: china-news, default_config: { enabled: true } }
