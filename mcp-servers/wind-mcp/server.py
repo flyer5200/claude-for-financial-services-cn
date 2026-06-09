@@ -162,6 +162,8 @@ def _mcp_call(server_type: str, method: str, params: dict, timeout: int = 60):
             timeout=timeout,
         )
         resp.raise_for_status()
+        # Wind MCP returns UTF-8 SSE, but requests may auto-detect as ISO-8859-1
+        resp.encoding = "utf-8"
         body = _parse_sse(resp.text)
         if body.get("error"):
             msg = body["error"].get("message", str(body["error"]))
