@@ -247,29 +247,41 @@ def check_mcp_json() -> None:
     if "ifind" in servers and "env" not in servers["ifind"]:
         log_error(f"{mcp_json}: ifind entry missing 'env' block — add IFIND_AUTH_TOKEN forwarding")
 
+    runner = mcp_plugin_dir / "run_server.py"
+    if not runner.exists():
+        log_error("Missing shared MCP launcher: mcp-servers/run_server.py")
+
     for mcp_name, server_cfg in servers.items():
         args = server_cfg.get("args", [])
-        if not args:
-            log_error(f"{mcp_json}: {mcp_name} entry missing script path in args")
+        if len(args) < 2:
+            log_error(f"{mcp_json}: {mcp_name} entry must use run_server.py and a server directory")
             continue
 
-        script_arg = args[0]
-        if os.path.isabs(script_arg) or ".." in Path(script_arg).parts:
+        runner_arg, server_dir_arg = args[0], args[1]
+        if os.path.isabs(runner_arg) or ".." in Path(runner_arg).parts:
             log_error(
-                f"{mcp_json}: {mcp_name} script path must stay inside the mcp-servers plugin: {script_arg}"
+                f"{mcp_json}: {mcp_name} launcher path must stay inside the mcp-servers plugin: {runner_arg}"
             )
             continue
 
-        script_path = mcp_plugin_dir / script_arg
-        if not script_path.exists():
-            log_error(f"{mcp_json}: {mcp_name} script path does not exist in plugin package: {script_arg}")
+        if runner_arg != "run_server.py":
+            log_error(f"{mcp_json}: {mcp_name} should launch via run_server.py")
+
+        if os.path.isabs(server_dir_arg) or ".." in Path(server_dir_arg).parts:
+            log_error(
+                f"{mcp_json}: {mcp_name} server directory must stay inside the mcp-servers plugin: {server_dir_arg}"
+            )
+            continue
 
         expected_server_dir = MCP_DIR_BY_NAME.get(mcp_name)
-        if expected_server_dir and script_arg != f"{expected_server_dir}/server.py":
-            log_error(
-                f"{mcp_json}: {mcp_name} script path should be "
-                f"{expected_server_dir}/server.py"
-            )
+        if expected_server_dir and server_dir_arg != expected_server_dir:
+            log_error(f"{mcp_json}: {mcp_name} server directory should be {expected_server_dir}")
+
+        server_dir = mcp_plugin_dir / server_dir_arg
+        if not (server_dir / "server.py").exists():
+            log_error(f"{mcp_json}: {mcp_name} server.py does not exist in plugin package: {server_dir_arg}")
+        if not (server_dir / "requirements.txt").exists():
+            log_error(f"{mcp_json}: {mcp_name} requirements.txt does not exist in plugin package: {server_dir_arg}")
 
     vert_dir = CHINA_DIR / "vertical-plugins"
     for entry in sorted(vert_dir.iterdir()):

@@ -44,6 +44,8 @@ claude plugin install wealth-management@claude-for-financial-services-cn
 claude plugin install fund-admin@claude-for-financial-services-cn
 ```
 
+首次运行 `claude mcp list` 或调用这些 MCP server 时，`china-finance-mcp` 会自动为每个 server 创建本地 Python 虚拟环境并安装对应依赖。
+
 然后直接跟 Claude 对话：
 
 ```

@@ -3,12 +3,12 @@
     "akshare": {
       "type": "stdio",
       "command": "python3",
-      "args": ["akshare-mcp/server.py"]
+      "args": ["run_server.py", "akshare-mcp"]
     },
     "ifind": {
       "type": "stdio",
       "command": "python3",
-      "args": ["ifind-mcp/server.py"],
+      "args": ["run_server.py", "ifind-mcp"],
       "env": {
         "IFIND_AUTH_TOKEN": "${IFIND_AUTH_TOKEN}"
       }
@@ -16,12 +16,12 @@
     "china-news": {
       "type": "stdio",
       "command": "python3",
-      "args": ["china-news-mcp/server.py"]
+      "args": ["run_server.py", "china-news-mcp"]
     },
     "wind": {
       "type": "stdio",
       "command": "python3",
-      "args": ["wind-mcp/server.py"],
+      "args": ["run_server.py", "wind-mcp"],
       "env": {
         "WIND_API_KEY": "${WIND_API_KEY}"
       }
