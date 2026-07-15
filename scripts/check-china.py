@@ -46,6 +46,7 @@ MCP_SERVER_CONFIG = {
 }
 
 ALL_MCP_NAMES = {cfg["mcp_name"] for cfg in MCP_SERVER_CONFIG.values()}
+MCP_DIR_BY_NAME = {cfg["mcp_name"]: server_dir for server_dir, cfg in MCP_SERVER_CONFIG.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -213,37 +214,71 @@ def check_mcp_servers() -> None:
 # ---------------------------------------------------------------------------
 
 def check_mcp_json() -> None:
-    """Verify all .mcp.json files register the expected MCP servers consistently.
+    """Verify the shared MCP plugin registers all expected MCP servers.
 
-    All vertical-plugins that reference Wind should also have ifind (Tier-1),
-    akshare (Tier-2), and china-news (Tier-3) for complete fallback chains.
+    MCP servers are packaged once in mcp-servers/ as the china-finance-mcp
+    plugin. Vertical plugins should reuse those server registrations instead of
+    bundling duplicate .mcp.json files or server copies.
     """
+    mcp_plugin_dir = CHINA_DIR / "mcp-servers"
+    mcp_json = mcp_plugin_dir / ".mcp.json"
+    if not mcp_json.exists():
+        log_error("Missing shared MCP plugin config: mcp-servers/.mcp.json")
+        return
+
+    try:
+        config = json.loads(mcp_json.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        log_error(f"{mcp_json}: invalid JSON — {e}")
+        return
+
+    servers = config.get("mcpServers", {})
+    registered = set(servers.keys())
+    missing = ALL_MCP_NAMES - registered
+
+    if missing:
+        log_error(f"{mcp_json}: missing MCP servers: {', '.join(sorted(missing))}")
+    else:
+        log_ok("mcp-servers/.mcp.json: all 4 MCP servers registered")
+
+    # Check paid data sources forward their environment variables.
+    if "wind" in servers and "env" not in servers["wind"]:
+        log_error(f"{mcp_json}: wind entry missing 'env' block — add WIND_API_KEY forwarding")
+    if "ifind" in servers and "env" not in servers["ifind"]:
+        log_error(f"{mcp_json}: ifind entry missing 'env' block — add IFIND_AUTH_TOKEN forwarding")
+
+    for mcp_name, server_cfg in servers.items():
+        args = server_cfg.get("args", [])
+        if not args:
+            log_error(f"{mcp_json}: {mcp_name} entry missing script path in args")
+            continue
+
+        script_arg = args[0]
+        if os.path.isabs(script_arg) or ".." in Path(script_arg).parts:
+            log_error(
+                f"{mcp_json}: {mcp_name} script path must stay inside the mcp-servers plugin: {script_arg}"
+            )
+            continue
+
+        script_path = mcp_plugin_dir / script_arg
+        if not script_path.exists():
+            log_error(f"{mcp_json}: {mcp_name} script path does not exist in plugin package: {script_arg}")
+
+        expected_server_dir = MCP_DIR_BY_NAME.get(mcp_name)
+        if expected_server_dir and script_arg != f"{expected_server_dir}/server.py":
+            log_error(
+                f"{mcp_json}: {mcp_name} script path should be "
+                f"{expected_server_dir}/server.py"
+            )
+
     vert_dir = CHINA_DIR / "vertical-plugins"
     for entry in sorted(vert_dir.iterdir()):
         if not entry.is_dir():
             continue
-        mcp_json = entry / ".mcp.json"
-        if not mcp_json.exists():
-            continue
-
-        try:
-            config = json.loads(mcp_json.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as e:
-            log_error(f"{mcp_json}: invalid JSON — {e}")
-            continue
-
-        servers = config.get("mcpServers", {})
-        registered = set(servers.keys())
-        missing = ALL_MCP_NAMES - registered
-
-        if missing:
-            log_error(f"{mcp_json}: missing MCP servers: {', '.join(sorted(missing))}")
-        else:
-            log_ok(f".mcp.json {entry.name}: all 4 MCP servers registered")
-
-        # Check Wind has env block
-        if "wind" in servers and "env" not in servers["wind"]:
-            log_error(f"{mcp_json}: wind entry missing 'env' block — add WIND_API_KEY forwarding")
+        if (entry / ".mcp.json").exists():
+            log_error(f"{entry / '.mcp.json'}: vertical plugins must reuse china-finance-mcp")
+        if (entry / "mcp-servers").exists():
+            log_error(f"{entry / 'mcp-servers'}: duplicate MCP server bundle is not allowed")
 
 
 # ---------------------------------------------------------------------------

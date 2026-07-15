@@ -1,0 +1,8 @@
+{
+  "name": "china-finance-mcp",
+  "version": "0.1.0",
+  "description": "Shared China financial MCP servers: Wind, iFind, AkShare, and China news",
+  "author": {
+    "name": "Anthropic FSI China"
+  }
+}

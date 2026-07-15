@@ -31,10 +31,13 @@ npm install -g @anthropic-ai/claude-code
 # 2. 加插件市场
 claude plugin marketplace add jwangkun/claude-for-financial-services-cn
 
-# 3. 装技能包（全量）
+# 3. 装共享数据层（四个 MCP servers）
+claude plugin install china-finance-mcp@claude-for-financial-services-cn
+
+# 4. 装技能包（全量）
 claude plugin install china-finance@claude-for-financial-services-cn
 
-# 4. 或按需装单个垂直领域
+# 5. 或按需装单个垂直领域（复用上面的 MCP 数据层）
 claude plugin install investment-banking@claude-for-financial-services-cn
 claude plugin install private-equity@claude-for-financial-services-cn
 claude plugin install wealth-management@claude-for-financial-services-cn

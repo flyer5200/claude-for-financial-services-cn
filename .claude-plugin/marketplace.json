@@ -1,9 +1,14 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "claude-for-financial-services-china",
+  "name": "claude-for-financial-services-cn",
   "description": "Chinese financial data and analysis plugins — A-share market data, comps, DCF, earnings analysis using AkShare open-source dataset. China-market equivalent of the main financial-services repo.",
   "owner": {"name": "jwangkun"},
   "plugins": [
+    {
+      "name": "china-finance-mcp",
+      "source": "./mcp-servers",
+      "description": "Shared China financial MCP servers: Wind, iFind, AkShare, and China news"
+    },
     {
       "name": "china-finance",
       "source": "./vertical-plugins/china-finance",
